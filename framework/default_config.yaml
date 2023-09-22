@@ -1,0 +1,17 @@
+---
+RUN:
+  log_dir: "/tmp"
+  run_id: null  # this will be redefined in the execution
+  cli_params: {}  # this will be filled with CLI parameters data
+ENV_DATA:
+  noobaa_core_dir: "/usr/local/noobaa-core"
+  package_json: "/usr/local/noobaa-core/package.json"
+  storage_dir: "/usr/local/noobaa-core/storage"
+  postgresql_dir: "/var/run/postgresql"
+  env_file: "/usr/local/noobaa-core/.env"
+  config_local: "/usr/local/noobaa-core/config-local.js"
+DEPLOYMENT:
+  backing_stores: 4
+  backing_store_drive_path: "/usr/local/noobaa-core/storage/backingstores"
+  backing_store_drive_prefix: "drive"
+  backing_store_drive_port: 9990
