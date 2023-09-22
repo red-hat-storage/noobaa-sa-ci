@@ -15,3 +15,4 @@ DEPLOYMENT:
   backing_store_drive_path: "/usr/local/noobaa-core/storage/backingstores"
   backing_store_drive_prefix: "drive"
   backing_store_drive_port: 9990
+
