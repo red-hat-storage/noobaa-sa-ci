@@ -124,7 +124,7 @@ class NSFSAccount(Account):
         if retcode != 0:
             raise AccountListFailed(f"Listing of accounts failed with error {stderr}")
 
-    def delete(self, config_root=None, account_name=None):
+    def delete(self, account_name=None, config_root=None):
         """
         Account Deletion
 
@@ -136,6 +136,8 @@ class NSFSAccount(Account):
         if config_root is None:
             config_root = self.config_root
         log.info("Deleting account for NSFS deployment")
+        log.info(account_name)
+        log.info(config_root)
         cmd = f"sudo /usr/local/noobaa-core/bin/node {self.manage_nsfs} account delete --name {account_name} --config_root {config_root}"
         retcode, stdout, stderr = self.conn.exec_cmd(cmd)
         if retcode != 0:

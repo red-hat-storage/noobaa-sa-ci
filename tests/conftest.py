@@ -4,6 +4,7 @@ import uuid
 
 from common_ci_utils.command_runner import exec_cmd
 from noobaa_sa.factories import AccountFactory
+from noobaa_sa.bucket import BucketManager
 
 
 log = logging.getLogger(__name__)
@@ -13,6 +14,20 @@ log = logging.getLogger(__name__)
 def account_manager(account_json=None):
     account_factory = AccountFactory()
     return account_factory.get_account(account_json)
+
+
+@pytest.fixture
+def bucket_manager(request):
+    bucket_manager = BucketManager()
+    # TODO: Implement cleanup operation
+    """
+    def bucket_cleanup():
+      for bucket in bucket_manager.list():
+        bucket_manager.delete(bucket)
+        
+    request.addfinalizer(bucket_cleanup)
+    """
+    return bucket_manager
 
 
 @pytest.fixture
