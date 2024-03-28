@@ -29,8 +29,17 @@ from utility.nsfs_server_utils import (
 log = logging.getLogger(__name__)
 
 
+@pytest.fixture(scope="class")
+def account_manager_class(account_json=None):
+    return account_manager_implementation(account_json)
+
+
 @pytest.fixture
 def account_manager(account_json=None):
+    return account_manager_implementation(account_json)
+
+
+def account_manager_implementation(account_json=None):
     account_factory = AccountFactory()
     return account_factory.get_account(account_json)
 
@@ -41,7 +50,7 @@ def bucket_manager(request):
 
     def bucket_cleanup():
         for bucket in bucket_manager.list():
-            bucket_manager.delete(bucket)
+            bucket_manager.delete(bucket, force=True)
 
     request.addfinalizer(bucket_cleanup)
     return bucket_manager
@@ -96,13 +105,47 @@ def set_nsfs_server_config_root(request):
     return _redirect_nsfs_service_to_use_custom_config_root
 
 
-@pytest.fixture
+@pytest.fixture(scope="class")
+def s3_client_factory_class(set_nsfs_server_config_root, account_manager_class):
+    """
+    Class scoped factory to create S3Client instances with given credentials.
+
+    Args:
+        set_nsfs_server_config_root (fixture): The prerequisite fixture to setup the NSFS server TLS certificate.
+        account_manager (AccountManager): The account manager instance.
+
+    Returns:
+        func: A function that creates S3Client instances.
+
+    """
+    return s3_client_factory_implementation(
+        set_nsfs_server_config_root, account_manager_class
+    )
+
+
+@pytest.fixture(scope="function")
 def s3_client_factory(set_nsfs_server_config_root, account_manager):
+    """
+    Function scoped factory to create S3Client instances with given credentials.
+
+    Args:
+        set_nsfs_server_config_root (fixture): The prerequisite fixture to setup the NSFS server TLS certificate.
+        account_manager (AccountManager): The account manager instance.
+
+    Returns:
+        func: A function that creates S3Client instances.
+
+    """
+    return s3_client_factory_implementation(
+        set_nsfs_server_config_root, account_manager
+    )
+
+
+def s3_client_factory_implementation(set_nsfs_server_config_root, account_manager):
     """
     Factory to create S3Client instances with given credentials.
 
     Args:
-        setup_nsfs_server_tls_cert (fixture): The prerequisite fixture to setup the NSFS server TLS certificate.
         account_manager (AccountManager): The account manager instance.
 
     Returns:
@@ -143,13 +186,8 @@ def s3_client_factory(set_nsfs_server_config_root, account_manager):
             setup_nsfs_tls_cert(config_root)
 
         # Set the AWS access and secret keys
-        access_key, secret_key = None, None
         if access_and_secret_keys_tuple is None:
-            account_name = generate_unique_resource_name(prefix="account")
-            access_key = generate_random_hex()
-            secret_key = generate_random_hex()
-            config_root = config.ENV_DATA["config_root"]
-            account_manager.create(account_name, access_key, secret_key, config_root)
+            _, access_key, secret_key = account_manager.create()
         else:
             access_key, secret_key = access_and_secret_keys_tuple
 
@@ -162,6 +200,30 @@ def s3_client_factory(set_nsfs_server_config_root, account_manager):
         )
 
     return create_s3client
+
+
+@pytest.fixture(scope="function")
+def s3client(s3_client_factory):
+    """
+    Create an S3Client using the credentials of a new account.
+
+    Returns:
+        S3Client: An S3Client instance.
+
+    """
+    return s3_client_factory()
+
+
+@pytest.fixture(scope="class")
+def c_scope_s3client(s3_client_factory_class):
+    """
+    Create an S3Client using the credentials of a new account - class scoped.
+
+    Returns:
+        S3Client: An S3Client instance.
+
+    """
+    return s3_client_factory_class()
 
 
 @pytest.fixture()

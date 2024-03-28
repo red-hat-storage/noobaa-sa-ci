@@ -46,11 +46,11 @@ class BucketManager:
             raise e.AccountStatusFailed(f"Failed to get status of account {stderr}")
         log.info(stdout)
         account_info = json.loads(stdout)
-        account_email = account_info["response"]["reply"]["email"]
+        account_owner = account_info["response"]["reply"]["name"]
         bucket_path = account_info["response"]["reply"]["nsfs_account_config"][
             "new_buckets_path"
         ]
-        cmd = f"{self.base_cmd} bucket add --config_root {config_root} --name {bucket_name} --email {account_email} --path {bucket_path} {self.unwanted_log}"
+        cmd = f"{self.base_cmd} bucket add --config_root {config_root} --name {bucket_name} --owner {account_owner} --path {bucket_path} {self.unwanted_log}"
         retcode, stdout, stderr = self.conn.exec_cmd(cmd)
         if retcode != 0:
             raise e.BucketCreationFailed(f"Failed to create bucket {stderr}")
@@ -76,7 +76,12 @@ class BucketManager:
         log.info(bucket_list)
         return bucket_list
 
-    def delete(self, bucket_name, config_root=None):
+    def delete(
+        self,
+        bucket_name,
+        config_root=None,
+        force=False,
+    ):
         """
         Bucket Deletion
 
@@ -87,7 +92,7 @@ class BucketManager:
         if config_root is None:
             config_root = self.config_root
         log.info(f"Deleting {bucket_name} Bucket from NSFS")
-        cmd = f"{self.base_cmd} bucket delete --name {bucket_name} --config_root {config_root}"
+        cmd = f"{self.base_cmd} bucket delete --name {bucket_name} --config_root {config_root} --force"
         retcode, stdout, stderr = self.conn.exec_cmd(cmd)
         if retcode != 0:
             raise e.BucketDeletionFailed(f"Deleting bucket failed with error {stderr}")

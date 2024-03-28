@@ -7,18 +7,19 @@ import os
 import tempfile
 from abc import ABC, abstractmethod
 
+from common_ci_utils.random_utils import generate_unique_resource_name
 from common_ci_utils.templating import Templating
 
 from framework import config
 from framework.ssh_connection_manager import SSHConnectionManager
-from noobaa_sa.defaults import MANAGE_NSFS
 from noobaa_sa import constants
+from noobaa_sa.defaults import MANAGE_NSFS
 from noobaa_sa.exceptions import (
     AccountCreationFailed,
     AccountDeletionFailed,
     AccountListFailed,
 )
-from utility.utils import get_noobaa_sa_host_home_path
+from utility.utils import generate_random_key, get_noobaa_sa_host_home_path
 
 log = logging.getLogger(__name__)
 
@@ -62,9 +63,9 @@ class NSFSAccount(Account):
 
     def create(
         self,
-        account_name,
-        access_key,
-        secret_key,
+        account_name="",
+        access_key="",
+        secret_key="",
         config_root=None,
         fs_backend=constants.DEFAULT_FS_BACKEND,
     ):
@@ -72,8 +73,31 @@ class NSFSAccount(Account):
         Account creation using file
 
         Args:
-            config_root (str): Path to config root
+            account_name (str): name of the account
+            access_key (str): access key for the account
+            secret_key (str): secret key for the account
+            email (str): email for the account
+            allow_bucket_creation (bool): allow bucket creation
+            uid (int): user ID
+            gid (int): group ID
+            config_root (str): path to config root
+            fs_backend (str): filesystem backend
+
+        Returns:
+            tuple:
+                account_name (str): name of the account
+                access_key (str): access key for the account
+                secret_key (str): secret key for the account
+
         """
+
+        # Set default values if not provided
+        if not account_name:
+            account_name = generate_unique_resource_name(prefix="account")
+        if not access_key:
+            access_key = generate_random_key(constants.EXPECTED_ACCESS_KEY_LEN)
+        if not secret_key:
+            secret_key = generate_random_key(constants.EXPECTED_SECRET_KEY_LEN)
 
         hd = get_noobaa_sa_host_home_path()
         bucket_path = os.path.join(hd, f"fs_{account_name}")
@@ -92,9 +116,7 @@ class NSFSAccount(Account):
             "bucket_path": bucket_path,
             "fs_backend": fs_backend,
         }
-        account_data_full = templating.render_template(
-            account_template, account_data
-            )
+        account_data_full = templating.render_template(account_template, account_data)
         log.info(f"account content: {account_data_full}")
 
         # write to file
@@ -119,6 +141,7 @@ class NSFSAccount(Account):
                 f"Creation of account failed with error {stdout}"
             )
         log.info("Account created successfully")
+        return account_name, access_key, secret_key
 
     def list(self, config_root=None):
         """

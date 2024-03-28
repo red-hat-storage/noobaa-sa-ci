@@ -4,6 +4,7 @@ from common_ci_utils.random_utils import (
     generate_unique_resource_name,
     generate_random_files,
 )
+from noobaa_sa import constants
 from utility.utils import (
     check_data_integrity,
     split_file_data_for_multipart_upload,
@@ -36,12 +37,10 @@ def test_s3_multipart_operations(
 
     # 1. Create an account using Node CLI
     account_name = generate_unique_resource_name(prefix="account")
-    access_key = generate_random_key(20)
-    secret_key = generate_random_key(40)
+    access_key = generate_random_key(constants.EXPECTED_ACCESS_KEY_LEN)
+    secret_key = generate_random_key(constants.EXPECTED_SECRET_KEY_LEN)
     account_manager.create(account_name, access_key, secret_key)
-    s3_client = s3_client_factory(
-        access_and_secret_keys_tuple=(access_key, secret_key)
-    )
+    s3_client = s3_client_factory(access_and_secret_keys_tuple=(access_key, secret_key))
     # 2. Create a bucket using S3
     bucket_name = s3_client.create_bucket()
     assert bucket_name in s3_client.list_buckets(), "Bucket was not created"
@@ -57,7 +56,8 @@ def test_s3_multipart_operations(
     # Upload multipart object
     for i in range(len(object_names)):
         get_upload_id = s3_client.initiate_multipart_object_upload(
-            bucket_name, object_names[i],
+            bucket_name,
+            object_names[i],
         )
         all_part_info = []
         file_name = origin_dir + "/" + object_names[i]
@@ -73,27 +73,21 @@ def test_s3_multipart_operations(
                 get_upload_id,
                 part_data[pd],
             )
-            all_part_info.append({
-                    'PartNumber': part_id,
-                    'ETag': part_info['ETag']
-            })
+            all_part_info.append({"PartNumber": part_id, "ETag": part_info["ETag"]})
         list_mp_uploads = s3_client.list_multipart_upload(bucket_name)
         log.info(list_mp_uploads)
         mp_response = s3_client.complete_multipart_object_upload(
-            bucket_name,
-            object_names[i],
-            get_upload_id,
-            all_part_info
-            )
+            bucket_name, object_names[i], get_upload_id, all_part_info
+        )
         assert (
-            mp_response['ResponseMetadata']['HTTPStatusCode'] == 200
+            mp_response["ResponseMetadata"]["HTTPStatusCode"] == 200
         ), "Failed to upload multipart object"
         log.info(mp_response)
 
     # 4. List multipart objects from the bucket
     listed_objs = s3_client.list_objects(bucket_name)
-    assert (
-        set(object_names).issubset(set(listed_objs))
+    assert set(object_names).issubset(
+        set(listed_objs)
     ), "All uploaded objects are not present in bucket"
 
     # 5. Download the objects from the bucket and verify data integrity

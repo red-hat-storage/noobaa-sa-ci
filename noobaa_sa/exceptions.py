@@ -42,5 +42,29 @@ class BucketUpdateFailed(Exception):
     pass
 
 
-class MissingFileOrDirectoryException(Exception):
+class MissingFileOrDirectory(Exception):
+    pass
+
+
+class NoSuchBucket(Exception):
+    pass
+
+
+class BucketNotEmpty(Exception):
+    pass
+
+
+class BucketAlreadyExists(Exception):
+    pass
+
+
+class AccessDenied(Exception):
+    pass
+
+
+class UnexpectedBehaviour(Exception):
+    pass
+
+
+class NoSuchKey(Exception):
     pass

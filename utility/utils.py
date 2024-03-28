@@ -78,9 +78,7 @@ def check_data_integrity(origin_dir, results_dir):
         return False
     uploaded_objs_names.sort()
     downloaded_objs_names.sort()
-    for uploaded, downloaded in zip(
-        uploaded_objs_names, downloaded_objs_names
-    ):
+    for uploaded, downloaded in zip(uploaded_objs_names, downloaded_objs_names):
         original_full_path = os.path.join(origin_dir, uploaded)
         downloaded_full_path = os.path.join(results_dir, downloaded)
         if not compare_md5sums(original_full_path, downloaded_full_path):
@@ -113,7 +111,7 @@ def split_file_data_for_multipart_upload(file_name, part_size=None):
         while True:
             log.info(f"Reading {new_part_size} chunks of the {file_name}")
             file_chunk = f.read(new_part_size)
-            if file_chunk == b'':
+            if file_chunk == b"":
                 break
             all_chunks.append(file_chunk)
     return all_chunks
@@ -124,16 +122,26 @@ def generate_random_key(length=20):
     Generates a random string with the given length
 
     args:
-        length (int): The length of the string.
+        length (int): The length of the string - must be at least 2
 
     returns:
         str: A random string.
     """
-    return ''.join(
-        random.choices(
-            string.ascii_letters +
-            string.digits +
-            string.punctuation,
-            k=length
-            )
-        )
+    # Generate mandatory characters
+    mandatory_chars = []
+    mandatory_chars.append(random.choice(string.ascii_uppercase))
+    mandatory_chars.append(random.choice(string.digits))
+
+    # Generate the rest of the key and make sure it doesn't contain any invalid characters
+    invalid_chars = ["\\", "/", " ", '"', "'"]
+    valid_special_characters = "".join(
+        char for char in string.punctuation if char not in invalid_chars
+    )
+    valid_characters = string.ascii_letters + string.digits + valid_special_characters
+    key_chars = random.choices(valid_characters, k=length - len(mandatory_chars))
+
+    # Add the mandatory characters to random positions in the key
+    for ch in mandatory_chars:
+        key_chars.insert(random.randint(0, len(key_chars)), ch)
+
+    return "".join(key_chars)
