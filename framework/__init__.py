@@ -7,3 +7,8 @@ THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CONFIG_PATH = os.path.join(THIS_DIR, "default_config.yaml")
 
 config = Config(DEFAULT_CONFIG_PATH=DEFAULT_CONFIG_PATH)
+
+
+class GlobalVariables:
+    # Test time report
+    TIMEREPORT_DICT: dict = dict()

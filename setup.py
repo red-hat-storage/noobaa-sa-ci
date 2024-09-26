@@ -18,6 +18,9 @@ setup(
         "pyyaml",
         "requests",
         "boto3",
+        "pytest-html",
+        "py",
+        "bs4",
     ],
     entry_points={
         "console_scripts": [

@@ -2,4 +2,9 @@
 ---
 ENV_DATA:
   config_root: "~/config_root"
-  email: noobaa_sa_qa@redhat.com
+
+# Section for reporting configuration
+REPORTING:
+  email:
+    address: "ocs-ci@redhat.com"
+    smtp_server: "localhost"
