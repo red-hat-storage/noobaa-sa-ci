@@ -199,6 +199,11 @@ class NSFSAccount(Account):
         log.info(stdout)
         if retcode != 0:
             raise AccountListFailed(f"Listing of accounts failed with error {stdout}")
+        account_ls = json.loads(stdout)
+        account_ls = account_ls["response"]["reply"]
+        account_list = [item["name"] for item in account_ls]
+        log.info(account_list)
+        return account_list
 
     def delete(self, account_name=None, config_root=None):
         """

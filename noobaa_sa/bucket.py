@@ -28,7 +28,9 @@ class BucketManager:
         self.unwanted_log = "2>/dev/null"
         self.conn = SSHConnectionManager().connection
 
-    def create(self, account_name, bucket_name, config_root=None):
+    def create(
+        self, account_name, bucket_name, config_root=None, custom_bucket_path=None
+    ):
         """
         Create bucket using CLI
 
@@ -47,9 +49,14 @@ class BucketManager:
         log.info(stdout)
         account_info = json.loads(stdout)
         account_owner = account_info["response"]["reply"]["name"]
-        bucket_path = account_info["response"]["reply"]["nsfs_account_config"][
-            "new_buckets_path"
-        ]
+        if custom_bucket_path is not None:
+            bucket_path = custom_bucket_path
+            cmd = f"sudo mkdir {bucket_path}"
+            self.conn.exec_cmd(cmd)
+        else:
+            bucket_path = account_info["response"]["reply"]["nsfs_account_config"][
+                "new_buckets_path"
+            ]
         cmd = f"{self.base_cmd} bucket add --config_root {config_root} --name {bucket_name} --owner {account_owner} --path {bucket_path} {self.unwanted_log}"
         retcode, stdout, stderr = self.conn.exec_cmd(cmd)
         if retcode != 0:
