@@ -55,6 +55,8 @@ def account_manager_implementation(request, account_json=None):
         Make sure to delete the anonymous account
         """
         try:
+            for acc in acc_manager_instance.list():
+                acc_manager_instance.delete(account_name=acc)
             acc_manager_instance.delete(account_name="anonymous")
         except AccountDeletionFailed as e:
             log.warning(f"Failed to delete anonymous account: {e}")
