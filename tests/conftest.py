@@ -24,6 +24,7 @@ from utility.utils import (
     get_noobaa_sa_host_home_path,
     is_linux_username_available,
     is_uid_gid_available,
+    get_noobaa_sa_rpm_name,
 )
 from utility.nsfs_server_utils import (
     get_system_json,
@@ -365,3 +366,13 @@ def linux_user_factory(request):
 
     request.addfinalizer(_cleanup)
     return _create_user
+
+
+@pytest.fixture(scope="session", autouse=True)
+def additional_testsuite_properties(record_testsuite_property, pytestconfig):
+    """
+    Configures additional custom testsuite properties for junit xml
+    """
+    noobaa_sa_rpm_name = get_noobaa_sa_rpm_name()
+    # Prefix with `rp_` so the rp_preproc upload script knows to use the property
+    record_testsuite_property("rp_noobaa_sa_rpm_name", noobaa_sa_rpm_name)
