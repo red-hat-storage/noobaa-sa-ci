@@ -369,9 +369,9 @@ def linux_user_factory(request):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def additional_testsuite_properties(record_testsuite_property, pytestconfig):
+def testsuite_properties(record_testsuite_property, pytestconfig):
     """
-    Configures additional custom testsuite properties for junit xml
+    Configures custom testsuite properties for junit xml
     """
     noobaa_sa_rpm_name = get_noobaa_sa_rpm_name()
     # Prefix with `rp_` so the rp_preproc upload script knows to use the property
