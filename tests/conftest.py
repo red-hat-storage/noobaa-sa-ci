@@ -6,6 +6,7 @@ import tempfile
 import pytest
 
 from common_ci_utils.command_runner import exec_cmd
+from datetime import datetime
 from common_ci_utils.random_utils import (
     generate_random_hex,
     generate_unique_resource_name,
@@ -374,5 +375,10 @@ def testsuite_properties(record_testsuite_property, pytestconfig):
     Configures custom testsuite properties for junit xml
     """
     noobaa_sa_rpm_name = get_noobaa_sa_rpm_name()
+    time_now = datetime.now()
+    time_nums = time_now.strftime("%Y%m%d_%H%M%S")
     # Prefix with `rp_` so the rp_preproc upload script knows to use the property
     record_testsuite_property("rp_noobaa_sa_rpm_name", noobaa_sa_rpm_name)
+    record_testsuite_property("rp_launch_url", time_nums)
+    record_testsuite_property("rp_launch_name", f"noobaa-sa-{noobaa_sa_rpm_name}-{time_nums}")
+    record_testsuite_property("rp_launch_description", f"noobaa-sa-{noobaa_sa_rpm_name}-{time_nums}")
