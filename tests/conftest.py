@@ -377,8 +377,11 @@ def testsuite_properties(record_testsuite_property, pytestconfig):
     noobaa_sa_rpm_name = get_noobaa_sa_rpm_name()
     time_now = datetime.now()
     time_nums = time_now.strftime("%Y%m%d_%H%M%S")
-    # Prefix with `rp_` so the rp_preproc upload script knows to use the property
+    job_name = f"noobaa-sa-{noobaa_sa_rpm_name}-{time_nums}"
     record_testsuite_property("rp_noobaa_sa_rpm_name", noobaa_sa_rpm_name)
-    record_testsuite_property("rp_launch_url", time_nums)
-    record_testsuite_property("rp_launch_name", f"noobaa-sa-{noobaa_sa_rpm_name}-{time_nums}")
-    record_testsuite_property("rp_launch_description", f"noobaa-sa-{noobaa_sa_rpm_name}-{time_nums}")
+    record_testsuite_property("rp_launch_url", config.REPORTING.get("rp_launch_url"))
+    record_testsuite_property("rp_launch_name", job_name)
+    record_testsuite_property(
+        f"rp_launch_description",
+        f"Job name:{job_name}\n{config.RUN.get('jenkins_build_url')}",
+    )
