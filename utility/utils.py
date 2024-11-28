@@ -6,6 +6,7 @@ import logging
 import os
 import random
 import string
+import re
 
 from framework import config
 from framework.ssh_connection_manager import SSHConnectionManager
@@ -267,6 +268,30 @@ def get_noobaa_sa_rpm_name():
         cmd = "rpm -qa | grep noobaa"
         _, stdout, _ = conn.exec_cmd(cmd)
         return stdout.strip()
+    except Exception as e:
+        log.error(e)
+        return ""
+
+
+def get_noobaa_sa_version_string(rpm_name):
+    """
+    Extract the X.Y.Z version from the given NooBaa SA RPM name.
+
+    Args:
+        rpm_name (str): The NooBaa SA RPM name (e.g., "noobaa-core-5.17.0-20241026.el9.x86_64")
+
+    Returns:
+        str: The version in X.Y.Z format (e.g., "5.17.0"),
+             or an empty string if the format is invalid.
+    """
+    try:
+        # Regex to extract X.Y.Z from the RPM name
+        match = re.search(r"noobaa-core-(\d+)\.(\d+)\.(\d+)", rpm_name)
+        if match:
+            return ".".join(match.groups())  # Join X, Y, Z as a string
+        else:
+            log.error("No version found in RPM name")
+            return ""
     except Exception as e:
         log.error(e)
         return ""
