@@ -383,7 +383,9 @@ def testsuite_properties(record_testsuite_property, pytestconfig):
     record_testsuite_property("rp_launch_url", config.REPORTING.get("rp_launch_url"))
     record_testsuite_property("rp_launch_name", noobaa_sa_version_string_x_y)
     record_testsuite_property("rp_rpm_version", noobaa_sa_version_string_x_y_z)
+    record_testsuite_property("rp_rpm_name", noobaa_sa_rpm_name)
     record_testsuite_property(
         f"rp_launch_description",
         f"Job name:{noobaa_sa_rpm_name}\n{config.RUN.get('jenkins_build_url')}",
     )
+
