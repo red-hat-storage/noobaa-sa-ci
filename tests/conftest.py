@@ -376,11 +376,13 @@ def testsuite_properties(record_testsuite_property, pytestconfig):
     Configures custom testsuite properties for junit xml
     """
     noobaa_sa_rpm_name = get_noobaa_sa_rpm_name()
-    noobaa_sa_version_string = get_noobaa_sa_version_string(noobaa_sa_rpm_name)
-    job_name = f"noobaa-sa-{noobaa_sa_version_string}"
-    record_testsuite_property("rp_noobaa_sa_rpm_name", job_name)
+    noobaa_sa_version_string_x_y_z = get_noobaa_sa_version_string(noobaa_sa_rpm_name)
+    noobaa_sa_version_string_x_y = ".".join(
+        get_noobaa_sa_version_string(noobaa_sa_rpm_name).split(".")[:2]
+    )
     record_testsuite_property("rp_launch_url", config.REPORTING.get("rp_launch_url"))
-    record_testsuite_property("rp_launch_name", job_name)
+    record_testsuite_property("rp_launch_name", noobaa_sa_version_string_x_y)
+    record_testsuite_property("rp_rpm_version", noobaa_sa_version_string_x_y_z)
     record_testsuite_property(
         f"rp_launch_description",
         f"Job name:{noobaa_sa_rpm_name}\n{config.RUN.get('jenkins_build_url')}",
