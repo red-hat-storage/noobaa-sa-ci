@@ -265,7 +265,7 @@ class TestBucketPolicies:
         "access_effect",
         [
             "Allow",
-            # "Deny", Skipped due to https://bugzilla.redhat.com/show_bug.cgi?id=2280212
+            "Deny",
         ],
     )
     def test_resource_access_policies(
