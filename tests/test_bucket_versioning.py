@@ -343,3 +343,92 @@ class TestBucketVersioningOperations:
         log.info(
             "Successfully completed the overwrite object operation on suspended versioned bucket"
         )
+
+    @tier1
+    def test_copy_op_from_versioned_to_non_versioned_bucket(self, c_scope_s3client):
+        """
+        Test multipart object operation on versioned bucket:
+        1. Create two regular bucket
+        2. Enable versioning on one bucket
+        3. Upload object in version bucket
+        4. Copy object from versioned bucket to non versioned bucket
+        5. Download object from regular bucket and verify the data integrity of it
+        """
+        # Create regular bucket and enable versioning on it
+        regular_bucket = c_scope_s3client.create_bucket()
+        versioned_bucket = self.setup_versioned_bucket(c_scope_s3client)
+
+        # Upload 3 copies of data in versioned bucket
+        log.info("Uploading data in versioned bucket")
+        for i in range(3):
+            current_data = self.obj_data + " " + str(i)
+            response = c_scope_s3client.put_object(
+                versioned_bucket, self.obj_name, current_data
+            )
+            assert (
+                response["Code"] == 200
+            ), f"put_object failed with response code {response['Code']}"
+
+        # Copy object from versioned bucket to non versioned bucket
+        cp_response = c_scope_s3client.copy_object(
+            versioned_bucket, self.obj_name, regular_bucket, self.obj_name
+        )
+        assert (
+            cp_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+        ), "Failed to copy object from versioned to non-versioned bucket"
+        log.info(cp_response)
+
+        # Download object from regular bucket and verify the data integrity of it
+        get_obj_data = (
+            c_scope_s3client.get_object(regular_bucket, self.obj_name)["Body"]
+            .read()
+            .decode("utf-8")
+        )
+        log.info(get_obj_data)
+
+        # Verify the content of the object with original data
+        assert (
+            current_data == get_obj_data
+        ), "Original data and downloaded data does not match"
+        log.info("Original data and downloaded data is identical")
+
+    @tier1
+    def test_head_object_op_of_the_object(self, c_scope_s3client):
+        """
+        Test Head Object operation of the specific versioned object bucket:
+        1. Create regular bucket
+        2. Enable versioning on bucket
+        3. Upload 5 versions of data in versioned bucket
+        4. Get metadata of the specific version of the object
+        5. Verify ETags of uploaded content and head object response
+        """
+
+        # Create regular bucket and enable versioning on it
+        bucket = self.setup_versioned_bucket(c_scope_s3client)
+
+        # Upload 5 copies of data with same object_key in versioned bucket
+        log.info("Uploading data in versioned bucket")
+        data_dic = {}
+        for i in range(5):
+            current_data = self.obj_data + " " + str(i)
+            response = c_scope_s3client.put_object(bucket, self.obj_name, current_data)
+            assert (
+                response["Code"] == 200
+            ), f"put_object failed with response code {response['Code']}"
+            data_dic.update({current_data: response})
+
+        # Get metadata of specific versioned of the object
+        resp = random.choice(list(data_dic.keys()))
+        ver_id = data_dic[resp]["VersionId"]
+        get_obj_metadata = c_scope_s3client.head_object(
+            bucket, self.obj_name, VersionId=ver_id
+        )
+        log.info(get_obj_metadata)
+
+        # Verify the content of the object with original data
+        assert (
+            data_dic[resp]["ETag"] == get_obj_metadata["ETag"]
+        ), "Etags of uploaded Original data and Head object data does not match"
+        log.info(
+            "ETags of uploaded data response and head object response are identical"
+        )
