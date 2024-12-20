@@ -1,5 +1,7 @@
 import logging
+import os
 import pytest
+import random
 
 from common_ci_utils.random_utils import (
     generate_unique_resource_name,
@@ -7,7 +9,6 @@ from common_ci_utils.random_utils import (
 )
 from utility.utils import (
     check_data_integrity,
-    get_noobaa_sa_host_home_path,
     get_env_config_root_full_path,
     split_file_data_for_multipart_upload,
 )
@@ -15,7 +16,10 @@ from noobaa_sa import constants
 from framework import config
 from framework.customizations.marks import tier1
 from noobaa_sa.s3_client import S3Client
-from utility.bucket_utils import upload_incomplete_multipart_object
+from utility.bucket_utils import (
+    upload_incomplete_multipart_object,
+    list_all_versions_of_the_object,
+)
 
 log = logging.getLogger(__name__)
 
@@ -40,8 +44,10 @@ class TestMultipartOperations:
 
         """
         log.info("Uploading multipart object")
+        # 1. Create a bucket using S3
+        bucket_name = c_scope_s3client.create_bucket()
         resp = upload_incomplete_multipart_object(
-            c_scope_s3client, tmp_directories_factory
+            bucket_name, c_scope_s3client, tmp_directories_factory
         )
         obj_name = resp["object_names"][0]
         log.info("Trying to complete multipart operation for the object")
@@ -64,9 +70,11 @@ class TestMultipartOperations:
         2. Download the objects from the bucket and verify data integrity
 
         """
+        # 1. Create a bucket using S3
+        bucket_name = c_scope_s3client.create_bucket()
         log.info("Uploading multipart object")
         resp = upload_incomplete_multipart_object(
-            c_scope_s3client, tmp_directories_factory
+            bucket_name, c_scope_s3client, tmp_directories_factory
         )
         obj_name = resp["object_names"][0]
         log.info("Completing multipart operation for the object")
@@ -92,9 +100,11 @@ class TestMultipartOperations:
         2. List objects from the bucket and verify it
 
         """
+        # 1. Create a bucket using S3
+        bucket_name = c_scope_s3client.create_bucket()
         log.info("Uploading multipart object")
         resp = upload_incomplete_multipart_object(
-            c_scope_s3client, tmp_directories_factory
+            bucket_name, c_scope_s3client, tmp_directories_factory
         )
         obj_name = resp["object_names"][0]
         log.info("Completing multipart operation for the object")
@@ -122,9 +132,11 @@ class TestMultipartOperations:
         2. List parts objects from the bucket
 
         """
+        # 1. Create a bucket using S3
+        bucket_name = c_scope_s3client.create_bucket()
         log.info("Uploading multipart object")
         resp = upload_incomplete_multipart_object(
-            c_scope_s3client, tmp_directories_factory
+            bucket_name, c_scope_s3client, tmp_directories_factory
         )
         obj_name = resp["object_names"][0]
         log.info(f"Listing incomplete multipart uploads for the object {obj_name}")
@@ -154,9 +166,11 @@ class TestMultipartOperations:
         2. List all incomplete parts from the bucket
 
         """
+        # 1. Create a bucket using S3
+        bucket_name = c_scope_s3client.create_bucket()
         log.info("Uploading multipart object")
         resp = upload_incomplete_multipart_object(
-            c_scope_s3client, tmp_directories_factory
+            bucket_name, c_scope_s3client, tmp_directories_factory
         )
         obj_name = resp["object_names"][0]
         log.info(
@@ -191,9 +205,11 @@ class TestMultipartOperations:
         3. Copy object data from bucket created in step 1 to new bucket
 
         """
+        # 1. Create a bucket using S3
+        bucket_name = c_scope_s3client.create_bucket()
         log.info("Uploading multipart object")
         resp = upload_incomplete_multipart_object(
-            c_scope_s3client, tmp_directories_factory
+            bucket_name, c_scope_s3client, tmp_directories_factory
         )
         obj_name = resp["object_names"][0]
         c_scope_s3client.complete_multipart_object_upload(
@@ -240,9 +256,11 @@ class TestMultipartOperations:
         2. Abore multipart upload
 
         """
+        # 1. Create a bucket using S3
+        bucket_name = c_scope_s3client.create_bucket()
         log.info("Uploading multipart object")
         resp = upload_incomplete_multipart_object(
-            c_scope_s3client, tmp_directories_factory
+            bucket_name, c_scope_s3client, tmp_directories_factory
         )
         log.info("Aborting Multipart operation")
         obj_name = resp["object_names"][0]
@@ -283,15 +301,17 @@ class TestMultipartOperations:
         4. Validate data from original directory and new bucket using md5sum check
 
         """
+        # 1. Create a bucket using S3
+        bucket_name = c_scope_s3client.create_bucket()
         log.info("Uploading multipart object")
         if "MetadataDirective" in extra_header:
             x_header = {"Metadata": {"Key1": "val1"}}
             resp = upload_incomplete_multipart_object(
-                c_scope_s3client, tmp_directories_factory, **x_header
+                bucket_name, c_scope_s3client, tmp_directories_factory, **x_header
             )
         else:
             resp = upload_incomplete_multipart_object(
-                c_scope_s3client, tmp_directories_factory
+                bucket_name, c_scope_s3client, tmp_directories_factory
             )
         obj_name = resp["object_names"][0]
         log.info("Completing multipart operation for the object")
@@ -424,3 +444,97 @@ class TestMultipartOperations:
         s3_client.download_bucket_contents(second_bucket_name, results_dir)
         assert check_data_integrity(origin_dir, results_dir)
         log.info("Both uploaded and copied data are identical")
+
+    @tier1
+    def test_multipart_upload_on_versioned_bucket(
+        self,
+        c_scope_s3client,
+        tmp_directories_factory,
+    ):
+        """
+        Test basic s3 operations using a noobaa bucket:
+        1. Create bucket and enable versioning on it
+        2. Upload 5 copies of data with same key with different chunk size
+        3. List all available versions of uploaded data
+        4. Download each copy and compare it with original data
+        5. Create new non-versioned bucket and copy object in it
+        6. Verify copied data is identical with uploaded data
+        """
+        # 1. Create a bucket using S3 and enable versioning on it
+        bucket_name = c_scope_s3client.create_bucket()
+        c_scope_s3client.put_bucket_versioning(bucket_name, status="Enabled")
+        log.info(f"Enabled bucket versioning on bucket {bucket_name}")
+        log.info("Uploading multipart object")
+        origin_dir, results_dir = tmp_directories_factory(
+            dirs_to_create=["origin", "result"]
+        )
+        # 2. Write multipart objects to the bucket
+        object_name = generate_random_files(
+            origin_dir,
+            1,
+            min_size="20M",
+            max_size="30M",
+        )
+        # Upload multipart object
+        log.info("Initiate multipart upload process")
+        for _ in range(5):
+            upload_id = c_scope_s3client.initiate_multipart_object_upload(
+                bucket_name,
+                object_name[0],
+            )
+            all_part_info = []
+            file_name = origin_dir + "/" + object_name[0]
+            part_size = str(random.randint(1, 10)) + "M"
+            log.info(f"Split data into {part_size} size")
+            part_data = split_file_data_for_multipart_upload(file_name, part_size)
+            log.info("Initiate part uploads for multipart object")
+            for pd in range(len(part_data)):
+                part_id = pd + 1
+                part_info = c_scope_s3client.initiate_upload_part(
+                    bucket_name,
+                    object_name[0],
+                    part_id,
+                    upload_id,
+                    part_data[pd],
+                )
+                all_part_info.append({"PartNumber": part_id, "ETag": part_info["ETag"]})
+
+            log.info("Completing multipart operation for the object")
+            mp_response = c_scope_s3client.complete_multipart_object_upload(
+                bucket_name,
+                object_name[0],
+                upload_id,
+                all_part_info,
+            )
+            log.info(mp_response)
+
+        # List all versions of the object
+        version_list = list_all_versions_of_the_object(
+            c_scope_s3client, bucket_name, object_name[0]
+        )
+        for v in version_list:
+            log.info(v)
+        assert (
+            len(version_list) == 5
+        ), f"Uploaded 5 copies and listed {len(version_list)} copies of data"
+        log.info("Uploaded copies and listed copies count is same")
+        log.info("Download each copy of multipart object and validate it")
+        for i in range(len(version_list)):
+            c_scope_s3client.download_bucket_contents(
+                bucket_name, results_dir, VersionId=version_list[i]
+            )
+            assert check_data_integrity(origin_dir, results_dir)
+            log.info("Both uploaded and downloaded data are identical")
+            os.remove(results_dir + "/" + object_name[0])
+        # Copy versioned object to non-versioned bucket
+        destination_bucket = c_scope_s3client.create_bucket()
+        cp_response = c_scope_s3client.copy_object(
+            bucket_name, object_name[0], destination_bucket, object_name[0]
+        )
+        assert (
+            cp_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+        ), "Failed to copy object from versioned to non-versioned bucket"
+        log.info(cp_response)
+        c_scope_s3client.download_bucket_contents(destination_bucket, results_dir)
+        assert check_data_integrity(origin_dir, results_dir)
+        log.info("Copied data is identical with Uploaded data")

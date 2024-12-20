@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 
 
 def upload_incomplete_multipart_object(
-    c_scope_s3client, tmp_directories_factory, amount=1, **kwargs
+    bucket_name, c_scope_s3client, tmp_directories_factory, amount=1, **kwargs
 ):
     """
     Uploads multipart object without actual completing it
@@ -33,8 +33,6 @@ def upload_incomplete_multipart_object(
     )
     resp_dir["origin_dir"] = origin_dir
     resp_dir["results_dir"] = results_dir
-    # 1. Create a bucket using S3
-    bucket_name = c_scope_s3client.create_bucket()
     resp_dir["bucket_name"] = bucket_name
     # 2. Write multipart objects to the bucket
     object_names = generate_random_files(
@@ -69,3 +67,23 @@ def upload_incomplete_multipart_object(
             all_part_info.append({"PartNumber": part_id, "ETag": part_info["ETag"]})
         resp_dir["all_part_info"] = all_part_info
     return resp_dir
+
+
+def list_all_versions_of_the_object(s3client_obj, bucket_name, object_name):
+    """
+    returns list of version ids of the specific object
+
+    Args:
+        s3client_obj (obj): S3 client object
+        bucket_name  (str): versioned Bucket name
+        object_name  (str): Object name
+    Returns: list
+    """
+    version_id_list = []
+    log.info(f"Listing all versions available for object {object_name}")
+    response = s3client_obj.list_object_versions(bucket_name)
+    log.info(response)
+    for v in response["Versions"]:
+        if v["Key"] == object_name:
+            version_id_list.append(v["VersionId"])
+    return version_id_list

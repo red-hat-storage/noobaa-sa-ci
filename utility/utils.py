@@ -295,23 +295,3 @@ def get_noobaa_sa_version_string(rpm_name):
     except Exception as e:
         log.error(e)
         return ""
-
-
-def list_all_versions_of_the_object(s3client_obj, bucket_name, object_name):
-    """
-    returns list of version ids of the specific object
-
-    Args:
-        s3client_obj (obj): S3 client object
-        bucket_name  (str): versioned Bucket name
-        object_name  (str): Object name
-    Returns: list
-    """
-    version_id_list = []
-    log.info(f"Listing all versions available for object {object_name}")
-    response = s3client_obj.list_object_versions(bucket_name)
-    log.info(response)
-    for v in response["Versions"]:
-        if v["Key"] == object_name:
-            version_id_list.append(v["VersionId"])
-    return version_id_list

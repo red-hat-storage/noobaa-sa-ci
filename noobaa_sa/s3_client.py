@@ -180,13 +180,14 @@ class S3Client:
         log.info(f"Listed objects: {listed_obs}")
         return response_dict if get_response else listed_obs
 
-    def head_object(self, bucket_name, object_key):
+    def head_object(self, bucket_name, object_key, **kwargs):
         """
         Get the metadata of an object in an S3 bucket using boto3
 
         Args:
             bucket_name (str): The name of the bucket
             object_key (str): The key of the object
+            **kwargs (dict): Dictionary with extra parameters
 
         Returns:
             dict: A dictionary containing the response from the head_object call.
@@ -197,7 +198,7 @@ class S3Client:
             f"Getting metadata of object {object_key} from bucket {bucket_name} via boto3"
         )
         response_dict = self._exec_boto3_method(
-            "head_object", Bucket=bucket_name, Key=object_key
+            "head_object", Bucket=bucket_name, Key=object_key, **kwargs
         )
         return response_dict
 
@@ -371,7 +372,7 @@ class S3Client:
             "delete_bucket_policy", Bucket=bucket_name
         )
         return response_dict
-    
+
     def put_bucket_versioning(self, bucket_name, status="Enabled"):
         """
         Set versioning on bucket using boto3
@@ -379,29 +380,31 @@ class S3Client:
         Args:
             Bucket_name (str): The name of the bucket
             status (str): Versioning status
-        
+
         Returns:
             dict : PutBucketVersioning response
         """
-        log.info(f"Enabling versioning status {status} on bucket {bucket_name} via boto3")
-        return self._exec_boto3_method(
-            "put_bucket_versioning", Bucket=bucket_name, VersioningConfiguration={"Status": status}
+        log.info(
+            f"Enabling versioning status {status} on bucket {bucket_name} via boto3"
         )
-    
+        return self._exec_boto3_method(
+            "put_bucket_versioning",
+            Bucket=bucket_name,
+            VersioningConfiguration={"Status": status},
+        )
+
     def get_bucket_versioning(self, bucket_name):
         """
         Get versioning status of the bucket using boto3
 
         Args:
             Bucket_name (str): The name of the bucket
-        
+
         Returns:
             dict : GetBucketVersioning response
         """
         log.info(f"Getting versioning status of bucket {bucket_name} via boto3")
-        return self._exec_boto3_method(
-            "get_bucket_versioning", Bucket=bucket_name
-        )
+        return self._exec_boto3_method("get_bucket_versioning", Bucket=bucket_name)
 
     def list_object_versions(self, bucket_name, **kwargs):
         """
@@ -409,7 +412,7 @@ class S3Client:
 
         Args:
             Bucket_name (str): The name of the bucket
-        
+
         Returns:
             dict : list_object_versions response
         """
@@ -443,7 +446,7 @@ class S3Client:
                     local_path, bucket_name, s3_path, Config=transfer_config
                 )
 
-    def download_bucket_contents(self, bucket_name, local_dir, prefix=""):
+    def download_bucket_contents(self, bucket_name, local_dir, prefix="", **kwargs):
         """
         Downloads the contents of an S3 bucket prefix to a local directory.
         If the prefix is empty, the entire bucket will be downloaded.
@@ -471,7 +474,11 @@ class S3Client:
 
             print(f"Downloading {obj} to {local_file_path}")
             self._boto3_client.download_file(
-                bucket_name, obj, local_file_path, Config=transfer_config
+                bucket_name,
+                obj,
+                local_file_path,
+                Config=transfer_config,
+                ExtraArgs=kwargs,
             )
 
     def put_random_objects(
