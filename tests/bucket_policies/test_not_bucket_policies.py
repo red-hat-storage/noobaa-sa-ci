@@ -43,6 +43,7 @@ class TestNotBucketPolicies:
             BucketPolicyBuilder()
             .add_allow_statement()
             .add_principal(allowed_acc_name)
+            .add_principal(denied_acc_name)
             .add_action("*")
             .add_resource(f"{bucket}")
             .add_resource(f"{bucket}/*")
