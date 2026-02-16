@@ -18,26 +18,40 @@ class TestNotBucketPolicies:
         1. Setup:
             1.1 Create a bucket using the admin client
             1.2 Create two accounts
-        2. Allow all access to all principals except for the account specified by NotPrincipal
+        2. Apply a policy with:
+            2.1 Allow statement: explicitly allow the allowed account for all actions
+            2.2 Deny statement: deny GetObject for everyone except the allowed account (using NotPrincipal)
         3. Check that the allowed account can access the bucket
         4. Check that the denied account cannot access the bucket
 
         """
         # 1. Setup
         bucket = c_scope_s3client.create_bucket()
-        allowed_client = s3_client_factory()
-        denied_acc_name, access_key, secret_key = account_manager.create()
+        allowed_acc_name, allowed_access_key, allowed_secret_key = (
+            account_manager.create()
+        )
+        allowed_client = s3_client_factory(
+            access_and_secret_keys_tuple=(allowed_access_key, allowed_secret_key)
+        )
+        denied_acc_name, denied_access_key, denied_secret_key = account_manager.create()
         denied_client = s3_client_factory(
-            access_and_secret_keys_tuple=(access_key, secret_key)
+            access_and_secret_keys_tuple=(denied_access_key, denied_secret_key)
         )
 
-        # 2. Alllow all access to all principals except the account specified by NotPrincipal
+        # 2. Apply a policy with Allow statement using Principal and Deny statement using NotPrincipal
         policy = (
             BucketPolicyBuilder()
             .add_allow_statement()
-            .add_resource(f"{bucket}/*")
+            .add_principal(allowed_acc_name)
+            .add_principal(denied_acc_name)
             .add_action("*")
-            .add_not_principal(denied_acc_name)
+            .add_resource(f"{bucket}")
+            .add_resource(f"{bucket}/*")
+            .add_deny_statement()
+            .add_not_principal(allowed_acc_name)
+            .add_action("GetObject")
+            .add_resource(f"{bucket}")
+            .add_resource(f"{bucket}/*")
             .build()
         )
 
@@ -57,7 +71,7 @@ class TestNotBucketPolicies:
         # 4. Check that the denied account cannot access the bucket
         assert not access_tester.check_client_access_to_bucket_op(
             denied_client, bucket, "GetObject"
-        ), "The denied account was allowed acces when it shouldn't have been"
+        ), "The denied account was allowed access when it shouldn't have been"
 
     @tier1
     def test_not_action_bucket_policy(self, c_scope_s3client, s3_client_factory):
